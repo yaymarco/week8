@@ -4,6 +4,7 @@ var mainState = {
 		game.load.image("wallV", "assets/wallVertical.png");
 		game.load.image("wallH", "assets/wallHorizontal.png");
 		game.load.image("coin", "assets/coin.png");
+		game.load.image("enemy", "assets/enemy.png");
 	},
 	create: function() {
 		game.stage.backgroundColor = '#3498db';
@@ -45,14 +46,25 @@ var mainState = {
 			{ font: "18px Arial", fill: "#ffffff" });
 
 		this.score = 0;
+
+		this.enemies = game.add.group();
+		this.enemies.enableBody = true;
+
+		this.enemies.createMultiple(10, "enemy");
+		game.time.events.loop(2200, this.addEnemy, this);
+		game.time.events.loop(2200, this.addEnemy2, this);
 	},
 	update: function() {
 		game.physics.arcade.collide(this.player, this.walls);
+		game.physics.arcade.overlap(this.player, this.coin, this.takeCoin, null, this);
+
+		game.physics.arcade.collide(this.enemies, this.walls);
+		game.physics.arcade.overlap(this.player, this.enemies, this.playerDie, null, this);
+
 		this.movePlayer();
 		if (!this.player.inWorld) {
 			this.playerDie();
 		};
-		game.physics.arcade.overlap(this.player, this.coin, this.takeCoin, null, this);
 	},
 	movePlayer: function() {
 		if (this.cursor.left.isDown) {
@@ -89,6 +101,36 @@ var mainState = {
 		}
 		var newPosition = game.rnd.pick(coinPosition);
 		this.coin.reset(newPosition.x, newPosition.y);
+	},
+	addEnemy: function() {
+		var enemy = this.enemies.getFirstDead();
+
+		if (!enemy) {
+			return;
+		}
+
+		enemy.anchor.setTo(0.5, 1);
+		enemy.reset(game.width/2, 0);
+		enemy.body.gravity.y = 500;
+		enemy.body.velocity.x = 100 * game.rnd.pick([-1, 1]);
+		enemy.body.bounce.x = 1;
+		enemy.checkWorldBounds = true;
+		enemy.outOfBoundsKill = true;
+	},
+	addEnemy2: function() {
+		var enemy = this.enemies.getFirstDead();
+
+		if (!enemy) {
+			return;
+		}
+
+		enemy.anchor.setTo(0.5, 1);
+		enemy.reset(game.width/2, game.height);
+		enemy.body.gravity.y = -500;
+		enemy.body.velocity.x = 100 * game.rnd.pick([-1, 1]);
+		enemy.body.bounce.x = 1;
+		enemy.checkWorldBounds = true;
+		enemy.outOfBoundsKill = true;
 	}
 };
 var game = new Phaser.Game(500, 340, Phaser.AUTO, 'gameDiv');
