@@ -1,13 +1,6 @@
 var playState = {
-	preload: function() {
-		game.load.image("player", "assets/player.png");
-		game.load.image("wallV", "assets/wallVertical.png");
-		game.load.image("wallH", "assets/wallHorizontal.png");
-		game.load.image("coin", "assets/coin.png");
-		game.load.image("enemy", "assets/enemy.png");
-	},
 	create: function() {
-		this.player = game.add.sprite(game.width/2, game.height/2, 'player');
+		this.player = game.add.sprite(game.width/2, game.height/2, "player");
 		this.player.anchor.setTo(0.5, 0.5);
 		game.physics.arcade.enable(this.player);
 		this.player.body.gravity.y = 500;
@@ -50,6 +43,20 @@ var playState = {
 		this.enemies.createMultiple(10, "enemy");
 		game.time.events.loop(2200, this.addEnemy, this);
 		game.time.events.loop(2200, this.addEnemy2, this);
+
+		this.jumpSound = game.add.audio("jump");
+		this.coinSound = game.add.audio("coin");
+		this.deadSound = game.add.audio("dead");
+
+		this.player.animations.add("right", [1, 2], 8, true);
+		this.player.animations.add("left", [3, 4], 8, true);	
+
+		this.emitter = game.add.emitter(0, 0, 15);
+		this.emitter.makeParticles("pixel");
+		this.emitter.setYSpeed(-150, 150);
+		this.emitter.setXSpeed(-150, 150);
+		this.emitter.setScale(2, 0, 2, 0, 800);
+		this.emitter.gravity = 0;
 	},
 	update: function() {
 		game.physics.arcade.collide(this.player, this.walls);
@@ -57,33 +64,50 @@ var playState = {
 
 		game.physics.arcade.collide(this.enemies, this.walls);
 		game.physics.arcade.overlap(this.player, this.enemies, this.playerDie, null, this);
-
+		if(!this.player.alive) {
+			return;
+		}
 		this.movePlayer();
 		if (!this.player.inWorld) {
 			this.playerDie();
-		};
+		}
 	},
 	movePlayer: function() {
 		if (this.cursor.left.isDown) {
 			this.player.body.velocity.x = -200;
+			this.player.animations.play("left");
 		}
 		else if (this.cursor.right.isDown) {
 			this.player.body.velocity.x = 200;
+			this.player.animations.play("right");
 		}
 		else {
 			this.player.body.velocity.x = 0;
+			this.player.animations.stop();
+			this.player.frame = 0;
 		}
 		if (this.cursor.up.isDown && this.player.body.touching.down) {
 			this.player.body.velocity.y = -320;	
+			this.jumpSound.play();
 		}
 	},
 	playerDie: function() {
-		game.state.start("menu");
+		this.player.kill();
+		this.deadSound.play();
+		this.emitter.x = this.player.x;
+		this.emitter.y = this.player.y;
+		this.emitter.start(true, 800, null, 15);
+		game.time.events.add(1000, this.startMenu, this);
 	},
 	takeCoin: function(player, coin) {
 		game.global.score += 5;
 		this.scoreLabel.text = "score: " + game.global.score;
 		this.updateCoinPosition();
+		this.coinSound.play();
+
+		this.coin.scale.setTo(0, 0);
+		game.add.tween(this.coin.scale).to({x: 1, y: 1}, 300).start();
+		game.add.tween(this.player.scale).to({x: 1.3, y: 1.3}, 100).yoyo(true).start();
 	},
 	updateCoinPosition: function() {
 		var coinPosition = [
@@ -128,5 +152,8 @@ var playState = {
 		enemy.body.bounce.x = 1;
 		enemy.checkWorldBounds = true;
 		enemy.outOfBoundsKill = true;
+	},
+	startMenu: function() {
+		game.state.start("menu");
 	}
 };
