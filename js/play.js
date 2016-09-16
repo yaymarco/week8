@@ -41,8 +41,10 @@ var playState = {
 		this.enemies.enableBody = true;
 
 		this.enemies.createMultiple(10, "enemy");
-		game.time.events.loop(2200, this.addEnemy, this);
-		game.time.events.loop(2200, this.addEnemy2, this);
+		/*game.time.events.loop(2200, this.addEnemy, this);*/
+		this.nextEnemy = 0;
+		this.nextEnemy2 = 0;
+		/*game.time.events.loop(2200, this.addEnemy2, this);*/
 
 		this.jumpSound = game.add.audio("jump");
 		this.coinSound = game.add.audio("coin");
@@ -57,6 +59,12 @@ var playState = {
 		this.emitter.setXSpeed(-150, 150);
 		this.emitter.setScale(2, 0, 2, 0, 800);
 		this.emitter.gravity = 0;
+
+		this.wasd = {
+			up: game.input.keyboard.addKey(Phaser.Keyboard.W),
+			left: game.input.keyboard.addKey(Phaser.Keyboard.A),
+			right: game.input.keyboard.addKey(Phaser.Keyboard.D)
+		};
 	},
 	update: function() {
 		game.physics.arcade.collide(this.player, this.walls);
@@ -71,13 +79,29 @@ var playState = {
 		if (!this.player.inWorld) {
 			this.playerDie();
 		}
+
+		if (this.nextEnemy < game.time.now) {
+			var start = 4000, end = 1000, score = 100;
+			var delay = Math.max(
+				start - (start - end) * game.global.score / score, end);
+			this.addEnemy();
+			this.nextEnemy = game.time.now + delay;
+		}
+
+		if (this.nextEnemy2 < game.time.now) {
+			var start = 4000, end = 1000, score = 100;
+			var delay = Math.max(
+				start - (start - end) * game.global.score / score, end);
+			this.addEnemy2();
+			this.nextEnemy2 = game.time.now + delay;
+		}
 	},
 	movePlayer: function() {
-		if (this.cursor.left.isDown) {
+		if (this.cursor.left.isDown || this.wasd.left.isDown) {
 			this.player.body.velocity.x = -200;
 			this.player.animations.play("left");
 		}
-		else if (this.cursor.right.isDown) {
+		else if (this.cursor.right.isDown || this.wasd.right.isDown) {
 			this.player.body.velocity.x = 200;
 			this.player.animations.play("right");
 		}
@@ -86,7 +110,7 @@ var playState = {
 			this.player.animations.stop();
 			this.player.frame = 0;
 		}
-		if (this.cursor.up.isDown && this.player.body.touching.down) {
+		if ((this.cursor.up.isDown || this.wasd.up.isDown) && this.player.body.touching.down) {
 			this.player.body.velocity.y = -320;	
 			this.jumpSound.play();
 		}
